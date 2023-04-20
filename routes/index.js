@@ -135,36 +135,28 @@ router.get('/signin', async (req, res, next) => {
       res.json({message:"User does not exist"})
      }else{
       const check = bcrypt.compare(req.query.password,exists.password)
+      if(check){
+        req.session.isLoggedIn = true
+        req.session.exists = exists
+        console.log(req.session)
+      }
       check ? res.json(exists) : res.json({message:"incorrect password"})
      }
    }catch(err){
     res.json({message:err.message})
    }
+})
 
-  // let theUser = {}
-  // for (let ii = 0; ii < users.length; ii++) {
-  //   if (req.query.email.trim() == users[ii].userEmail) {
-  //     theUser.password = users[ii].password
-  //     theUser.userEmail = users[ii].userEmail
-  //     theUser.cardId = users[ii].cardId
-  //   }
-  // }
+router.get('/protected', async(req,res)=>{
+   try{
+        if(!req.session.isLoggedIn){
+          res.status(401).json({ msg: 'You are not authorized to view this resource' });
+        }else{
+          res.send(`Welcome!`);
+        }
+   }catch(err){
 
-  // let checkPass = false
-  // try {
-  //   checkPass = await bcrypt.compare(req.query.pass.trim() + process.env.EXTRA_BCRYPT_STRING, users[0].password)
-  // } catch (err) {
-  //   console.log('bcrypt.compare err: ' + err)
-  //   res.send({ success: false })
-  //   return
-  // }
-  // if (!checkPass) {
-  //   res.send({ success: false })
-  //   return
-  // }
-  // req.session.isLoggedIn = true
-  // req.session.theUser = theUser
-  // res.send({ success: true, login: true })
+   }
 })
 
 
