@@ -159,11 +159,10 @@ router.get('/protected', async(req,res)=>{
    }
 })
 
-
 router.get('/signout', (req, res, next) => {
   let loggedIn = req.session.isLoggedIn
   req.session.isLoggedIn = false
-  res.send('done: ' + loggedIn)
+  res.send('Signed out successfully')
 })
 
 exports.routes = router
