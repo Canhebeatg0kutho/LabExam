@@ -1,9 +1,13 @@
+/*
+If i wanted to make this application more secure, i would replace the get requests that handle the inputting of data with post requests, which means the addProduct, sign up, and sign in
+routes would be post requests instead of get requests. Sending in your data via a get request poses a security risk as all the data somebody would need to access your sensetive information
+will be sitting in the url for anyone to see.
+*/
+
 const express = require('express');
 const router = express.Router();
 require('dotenv').config()
 const bcrypt = require('bcryptjs')
-const jwt = require("jsonwebtoken");
-const jwtString = process.env.JWT_STRING
 const isAuth = require('../middleware/protect').isAuth
 
 const mongoose = require('mongoose')
