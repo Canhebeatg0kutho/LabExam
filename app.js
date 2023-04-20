@@ -13,7 +13,7 @@ app.use(cookieParser())
 app.use(express.json()) // Won't parse JSON data sent to server without this
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(express.static(path.join(__dirname, 'public')))
-app.use(session({secret: 'my secret', resave: false, saveUninitialized: false}))
+app.use(session({secret: 'my secret', resave: false, saveUninitialized: false, maxAge: 30 * 24 * 60 * 60 * 1000}))
 
 app.use('/', index.routes)
 

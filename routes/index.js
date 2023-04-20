@@ -22,13 +22,13 @@ const productSchema = new Schema({
 })
 
 const Product = mongoose.model('Product', productSchema) // 'Product' refers to the collection, so maps products collection to productSchema; see lecture notes
+let defaultId = 0;
 
-let nextProductId = 1;
 router.get('/addProduct',isAuth, async(req, res, next) => {
   const newProduct = new Product({
     name:req.query.name,
     price:req.query.price,
-    ourId:'' + nextProductId
+    ourId: '' + defaultId++
   })
   try{
       await newProduct.save()
@@ -68,13 +68,12 @@ router.get('/signup', async(req, res, next) => {
   })
   try{
   const hash = bcrypt.hashSync(newUser.pass + process.env.EXTRA_BCRYPT_STRING, 12)
-  const user = await Users.create({
+  await Users.create({
     email: newUser.email,
     pass: hash,
     userId: newUser.userId
   })
   console.log(hash)
-  //res.json(user)
   res.send({success:true,message:"Successfully signed up"})
   }catch(err){
     res.send({message:err.message,success:false})
@@ -97,12 +96,15 @@ router.get('/signin', async (req, res, next) => {
      if(!exists){
       res.json({message:"User does not exist"})
      }else{
-      const check = bcrypt.compare(req.query.pass,exists.pass)
+      const check = bcrypt.compare(req.query.pass, exists.pass)
       if(check){
         req.session.isLoggedIn = true
         req.session.theLoggedInUser  = exists
         console.log(req.session)
       }
+      console.log(req.query.pass)
+      console.log(exists.pass)
+      console.log(check)
       check ? res.send({success:true,message:"Welcome"}) : res.send({success:false,message:"incorrect password"})
      }
    }catch(err){
