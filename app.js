@@ -13,7 +13,7 @@ app.use(cookieParser())
 app.use(express.json()) // Won't parse JSON data sent to server without this
 app.use(bodyParser.urlencoded({ extended: false }))
 app.use(express.static(path.join(__dirname, 'public')))
-app.use(session({secret: 'my secret', resave: false, saveUninitialized: false}))
+app.use(session({secret: 'my secret', resave: false, saveUninitialized: false, maxAge: 30 * 24 * 60 * 60 * 1000}))
 
 app.use('/', index.routes)
 
@@ -24,7 +24,7 @@ app.use('/', index.routes)
 mongoose.set('strictQuery', true)
 mongoose.connect('mongodb+srv://Dude:perfect@cluster0.8uxojsl.mongodb.net/?retryWrites=true&w=majority')
     .then(res => {
-        app.listen(3000)
+        app.listen(8000)
         console.log("connected!")
     })
     .catch(err => {

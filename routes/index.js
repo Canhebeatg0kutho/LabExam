@@ -1,9 +1,14 @@
+/*
+If i wanted to make this application more secure, i would replace the get requests that handle the inputting of data with post requests, which means the addProduct, sign up, and sign in
+routes would be post requests instead of get requests. Sending in your data via a get request poses a security risk as all the data somebody would need to access your sensetive information
+will be sitting in the url for anyone to see.
+*/
+
 const express = require('express');
 const router = express.Router();
 require('dotenv').config()
 const bcrypt = require('bcryptjs')
-const jwt = require("jsonwebtoken");
-const jwtString = process.env.JWT_STRING
+const isAuth = require('../middleware/protect').isAuth
 
 const mongoose = require('mongoose')
 const Schema = mongoose.Schema
@@ -17,92 +22,39 @@ const productSchema = new Schema({
 })
 
 const Product = mongoose.model('Product', productSchema) // 'Product' refers to the collection, so maps products collection to productSchema; see lecture notes
+let defaultId = 0;
 
-let nextProductId = 0;
-router.get('/addProduct', (req, res, next) => {
-  new Product({ ourId: '' + nextProductId, name: 'widget', price: 3.95 })
-    .save()
-    .then(result => {
-      nextProductId++
-      console.log('saved product to database')
-      res.redirect('/')
-    })
-    .catch(err => {
-      console.log('failed to addAproduct: ' + err)
-      res.redirect('/')
-    })
-})
-
-router.get('/', (req, res, next) => {
-  Product.find() // Always returns an array
-    .then(products => {
-      res.json({ 'All the Products': products })
-    })
-    .catch(err => {
-      console.log('Failed to find: ' + err)
-      res.json({ 'Products': [] })
-    })
-})
-
-router.post('/', (req, res, next) => {
-  console.log(req.body.testData)
-  Product.find() // Always returns an array
-    .then(products => {
-      res.json({ 'POST Mongoose Products': products })
-    })
-    .catch(err => {
-      console.log('Failed to find: ' + err)
-      res.json({ 'Products': [] })
-    })
-})
-
-router.get('/getSpecificProduct', (req, res, next) => {
-  Product.find({ ourId: '1' }) // Always returns an array
-    .then(products => {
-      res.send('getSpecificProduct: ' + JSON.stringify(products[0])) // Return the first one found
-    })
-    .catch(err => {
-      console.log('Failed to find product: ' + err)
-      res.send('No product found')
-    })
-})
-
-router.get('/updateSpecificProduct', (req, res, next) => {
-  Product.find({ ourId: '1' }) // Always returns an array
-    .then(products => {
-      let specificProduct = products[0] // pick the first match
-      specificProduct.price = 99.95
-      specificProduct.save() // Should check for errors here too
-      res.redirect('/')
-    })
-    .catch(err => {
-      console.log('Failed to find product: ' + err)
-      res.send('No product found')
-    })
-})
-
-router.get('/deleteSpecificProduct', (req, res, next) => {
-  if (!req.session.loggedIn) {
-    res.send({ success: false })
+router.get('/addProduct',isAuth, async(req, res, next) => {
+  const newProduct = new Product({
+    name:req.query.name,
+    price:req.query.price,
+    ourId: '' + defaultId++
+  })
+  try{
+      await newProduct.save()
+      res.send({success:true,message:"Product addition successfull"})
+  }catch(err){
+    res.json({message:err.message})
+    res.send({success:false,message:"Product addition unsuccessfull"})
   }
-
-  Product.findOneAndRemove({ ourId: '0' })
-    .then(resp => {
-      res.send({ success: true })
-    })
-    .catch(err => {
-      console.log('Failed to find product: ' + err)
-      res.send({ success: false })
-    })
 })
 
+router.get('/getAllProducts', async(req, res, next) => {
+  try{
+   const getAll = await Product.find()
+    res.send({success:true,products:getAll})
+  }catch(err){
+    res.send({message:err.message,success:false})
+  }
+})
 
 
 //--------------------------------------------------------USER AUTHENTICATION---------------------------------------------------------//
-
+const nextUserId = 0;
 const userSchema = new Schema({
-  userEmail: { type: String, required: true },
-  password: { type: String, required: true }
+  email: { type: String, required: true },
+  pass: { type: String, required: true },
+  userId: {type:String, required:true}
 })
 
 const Users = mongoose.model('Users', userSchema) 
@@ -110,37 +62,50 @@ const Users = mongoose.model('Users', userSchema)
 
 router.get('/signup', async(req, res, next) => {
   const newUser = new Users({
-    userEmail: req.query.userEmail,
-    password: req.query.password
+    email: req.query.email,
+    pass: req.query.pass,
+    userId: '' + nextUserId
   })
   try{
-  const hash = bcrypt.hashSync(newUser.password + process.env.EXTRA_BCRYPT_STRING, 12)
-  const user = await Users.create({
-    userEmail: newUser.userEmail,
-    password: hash
+  const hash = bcrypt.hashSync(newUser.pass + process.env.EXTRA_BCRYPT_STRING, 12)
+  await Users.create({
+    email: newUser.email,
+    pass: hash,
+    userId: newUser.userId
   })
   console.log(hash)
- // const create = await newUser.save()
-  res.json(user)
+  res.send({success:true,message:"Successfully signed up"})
   }catch(err){
-    res.json({message:err.message})
+    res.send({message:err.message,success:false})
+  }
+})
+
+router.get('/showUserEmails', async(req,res)=>{
+  try{
+    const getUsers = await Users.find()
+    res.send({success:true,Allusers:getUsers})
+  }catch(err){
+    res.send({message:err.message,success:false})
   }
 })
 
 
 router.get('/signin', async (req, res, next) => {
   try{
-     const exists = await Users.findOne({userEmail:req.query.userEmail})
+     const exists = await Users.findOne({email:req.query.email})
      if(!exists){
       res.json({message:"User does not exist"})
      }else{
-      const check = bcrypt.compare(req.query.password,exists.password)
+      const check = bcrypt.compare(req.query.pass, exists.pass)
       if(check){
         req.session.isLoggedIn = true
-        req.session.exists = exists
+        req.session.theLoggedInUser  = exists
         console.log(req.session)
       }
-      check ? res.json(exists) : res.json({message:"incorrect password"})
+      console.log(req.query.pass)
+      console.log(exists.pass)
+      console.log(check)
+      check ? res.send({success:true,message:"Welcome"}) : res.send({success:false,message:"incorrect password"})
      }
    }catch(err){
     res.json({message:err.message})
