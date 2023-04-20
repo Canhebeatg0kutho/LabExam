@@ -24,7 +24,7 @@ app.use('/', index.routes)
 mongoose.set('strictQuery', true)
 mongoose.connect('mongodb+srv://Dude:perfect@cluster0.8uxojsl.mongodb.net/?retryWrites=true&w=majority')
     .then(res => {
-        app.listen(3000)
+        app.listen(8000)
         console.log("connected!")
     })
     .catch(err => {
