@@ -96,44 +96,77 @@ router.get('/deleteSpecificProduct', (req, res, next) => {
     })
 })
 
+
+
+//--------------------------------------------------------USER AUTHENTICATION---------------------------------------------------------//
+
+const userSchema = new Schema({
+  userEmail: { type: String, required: true },
+  password: { type: String, required: true }
+})
+
+const Users = mongoose.model('Users', userSchema) 
+
+
+router.get('/signup', async(req, res, next) => {
+  const newUser = new Users({
+    userEmail: req.query.userEmail,
+    password: req.query.password
+  })
+  try{
+  const hash = bcrypt.hashSync(newUser.password + process.env.EXTRA_BCRYPT_STRING, 12)
+  const user = await Users.create({
+    userEmail: newUser.userEmail,
+    password: hash
+  })
+  console.log(hash)
+ // const create = await newUser.save()
+  res.json(user)
+  }catch(err){
+    res.json({message:err.message})
+  }
+})
+
+
 router.get('/signin', async (req, res, next) => {
-  let theUser = {}
-  for (let ii = 0; ii < users.length; ii++) {
-    if (req.query.email.trim() == users[ii].userEmail) {
-      theUser.password = users[ii].password
-      theUser.userEmail = users[ii].userEmail
-      theUser.cardId = users[ii].cardId
-    }
-  }
+  try{
+     const exists = await Users.findOne({userEmail:req.query.userEmail})
+     if(!exists){
+      res.json({message:"User does not exist"})
+     }else{
+      const check = bcrypt.compare(req.query.password,exists.password)
+      check ? res.json(exists) : res.json({message:"incorrect password"})
+     }
+   }catch(err){
+    res.json({message:err.message})
+   }
 
-  let checkPass = false
-  try {
-    checkPass = await bcrypt.compare(req.query.pass.trim() + process.env.EXTRA_BCRYPT_STRING, users[0].password)
-  } catch (err) {
-    console.log('bcrypt.compare err: ' + err)
-    res.send({ success: false })
-    return
-  }
-  if (!checkPass) {
-    res.send({ success: false })
-    return
-  }
-  req.session.isLoggedIn = true
-  req.session.theUser = theUser
-  res.send({ success: true, login: true })
+  // let theUser = {}
+  // for (let ii = 0; ii < users.length; ii++) {
+  //   if (req.query.email.trim() == users[ii].userEmail) {
+  //     theUser.password = users[ii].password
+  //     theUser.userEmail = users[ii].userEmail
+  //     theUser.cardId = users[ii].cardId
+  //   }
+  // }
+
+  // let checkPass = false
+  // try {
+  //   checkPass = await bcrypt.compare(req.query.pass.trim() + process.env.EXTRA_BCRYPT_STRING, users[0].password)
+  // } catch (err) {
+  //   console.log('bcrypt.compare err: ' + err)
+  //   res.send({ success: false })
+  //   return
+  // }
+  // if (!checkPass) {
+  //   res.send({ success: false })
+  //   return
+  // }
+  // req.session.isLoggedIn = true
+  // req.session.theUser = theUser
+  // res.send({ success: true, login: true })
 })
 
-const users = []
-router.get('/signup', (req, res, next) => {
-  // console.log(req.body.testData)
-  const userEmail = req.query.email.trim()
-  let password = req.query.pass.trim()
-  // do lots of checking / validation
-  password = bcrypt.hashSync(password + process.env.EXTRA_BCRYPT_STRING, 12),
-    users.push({ userEmail: userEmail, password: password, cartId: 1 })
-  console.log('users: ', users)
-  res.send({ success: true })
-})
 
 router.get('/signout', (req, res, next) => {
   let loggedIn = req.session.isLoggedIn
